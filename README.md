@@ -1,361 +1,526 @@
-# main.py
-import tkinter as tk
-from tkinter import messagebox
-import time
+mport com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 
-# ---------------- Configuração de tema (modo claro / escuro) ----------------
-THEMES = {
-    "light": {
-        "bg": "#f2f2f2",
-        "fg": "#111111",
-        "card": "#ffffff",
-        "button_bg": "#4a90e2",
-        "button_fg": "#ffffff",
-        "accent": "#2b7be4"
-    },
-    # Modo escuro "A" - preto total estilo "gamer"
-    "dark": {
-        "bg": "#000000",
-        "fg": "#ffffff",
-        "card": "#0f0f0f",
-        "button_bg": "#1e3a8a",   # azul escuro para botões
-        "button_fg": "#ffffff",
-        "accent": "#2563eb"
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+public class ProjectSeminario {
+
+    private JFrame frame;
+    private JPanel mainPanel;
+    private CardLayout cardLayout;
+
+    private java.util.List<String> itens;
+    private String usuario;
+    private String profileEmail;
+
+    private String themeName = "light";
+    private Map<String, Color> colors = new HashMap<>();
+
+    private JTextField loginUserField;
+    private JPasswordField loginPassField;
+
+    private Map<String, JPanel> screens = new HashMap<>();
+    private String currentSelectedItem = null;
+
+    public ProjectSeminario() {
+        itens = new ArrayList<>();
+        itens.add("Item 1");
+        itens.add("Item 2");
+        itens.add("Item 3");
+
+        usuario = "Aluno Exemplo";
+        profileEmail = "email@exemplo.com";
+
+        setColorsForTheme();
+
+        SwingUtilities.invokeLater(() -> {
+            initLookAndFeel();
+            createAndShowGUI();
+            showLoadingThen("login", 700, true, null);
+        });
+    }
+
+    private void initLookAndFeel() {
+        try {
+            if ("dark".equals(themeName)) {
+                FlatDarkLaf.setup();
+            } else {
+                FlatLightLaf.setup();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void setColorsForTheme() {
+        if ("dark".equals(themeName)) {
+            colors.put("bg", new Color(10,10,10));
+            colors.put("fg", Color.WHITE);
+            colors.put("card", new Color(20,20,20));
+            colors.put("button_bg", new Color(40,40,40));
+            colors.put("button_fg", Color.WHITE);
+        } else {
+            colors.put("bg", new Color(240,240,240));
+            colors.put("fg", Color.BLACK);
+            colors.put("card", Color.WHITE);
+            colors.put("button_bg", new Color(60,120,200));
+            colors.put("button_fg", Color.WHITE);
+        }
+    }
+
+    private void createAndShowGUI() {
+        frame = new JFrame("Projeto Seminário");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(380, 560);
+        frame.setResizable(false);
+        frame.setLocationRelativeTo(null);
+
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBorder(new EmptyBorder(8,8,8,8));
+        mainPanel.setBackground(colors.get("bg"));
+
+        screens.put("login", buildLoginScreen());
+        screens.put("home", buildHomeScreen());
+        screens.put("lista", buildListaScreen());
+        screens.put("detalhes", buildDetalhesScreen());
+        screens.put("adicionar", buildAdicionarScreen());
+        screens.put("editar", buildEditarScreen());
+        screens.put("excluir", buildExcluirScreen());
+        screens.put("perfil", buildPerfilScreen());
+        screens.put("configuracoes", buildConfiguracoesScreen());
+
+        for (Map.Entry<String, JPanel> e : screens.entrySet()) {
+            mainPanel.add(e.getValue(), e.getKey());
+        }
+
+        frame.add(mainPanel);
+        frame.setVisible(true);
+    }
+
+    private void showLoadingThen(String screen, int delayMs, boolean firstLoad, Runnable after) {
+        final JDialog loading = new JDialog(frame);
+        loading.setUndecorated(true);
+        loading.setSize(220, 100);
+        loading.setModal(false);
+
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBorder(new EmptyBorder(10,10,10,10));
+        p.setBackground(Color.WHITE);
+        JLabel lbl = new JLabel("Carregando...", SwingConstants.CENTER);
+        p.add(lbl);
+        loading.add(p);
+
+        loading.setLocationRelativeTo(frame);
+        loading.setVisible(true);
+
+        int totalDelay = firstLoad ? delayMs + 300 : delayMs;
+        new Timer(totalDelay, e -> {
+            loading.dispose();
+            showScreen(screen);
+            if (after != null) after.run();
+            ((Timer)e.getSource()).stop();
+        }).start();
+    }
+
+    private void goTo(String screen) {
+        showLoadingThen(screen, 500, false, null);
+    }
+
+    private void showScreen(String name) {
+
+        switch (name) {
+            case "lista" -> refreshListaScreen();
+            case "perfil" -> refreshPerfilScreen();
+            case "detalhes" -> refreshDetalhesScreen(currentSelectedItem);
+            case "editar" -> refreshEditarScreen(currentSelectedItem);
+            case "excluir" -> refreshExcluirScreen(currentSelectedItem);
+            case "configuracoes" -> refreshConfiguracoesScreen();
+        }
+
+        cardLayout.show(mainPanel, name);
+    }
+
+    private JButton makeButton(String text, ActionListener action) {
+        JButton btn = new JButton(text);
+        btn.setFocusPainted(false);
+        btn.addActionListener(action);
+        btn.setPreferredSize(new Dimension(200, 36));
+        return btn;
+    }
+
+    // ------------------------- TELAS -------------------------------
+
+    private JPanel buildLoginScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Tela de Login");
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        loginUserField = new JTextField();
+        loginUserField.setMaximumSize(new Dimension(260, 28));
+        p.add(centeredComponent(loginUserField));
+
+        loginPassField = new JPasswordField();
+        loginPassField.setMaximumSize(new Dimension(260, 28));
+        p.add(centeredComponent(loginPassField));
+
+        p.add(centeredComponent(makeButton("Entrar", evt -> doLoginAction())));
+
+        return p;
+    }
+
+    private void doLoginAction() {
+        String u = loginUserField.getText().trim();
+        String s = new String(loginPassField.getPassword()).trim();
+
+        if (u.isEmpty() || s.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "Preencha os campos!");
+            return;
+        }
+
+        usuario = u;
+        goTo("home");
+    }
+
+    private JPanel buildHomeScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Tela Home", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 20));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel welcome = new JLabel("Olá, " + usuario + "!");
+        welcome.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(welcome);
+
+        p.add(centeredComponent(makeButton("Lista de Itens", e -> goTo("lista"))));
+        p.add(centeredComponent(makeButton("Adicionar Item", e -> goTo("adicionar"))));
+        p.add(centeredComponent(makeButton("Perfil", e -> goTo("perfil"))));
+        p.add(centeredComponent(makeButton("Configurações", e -> goTo("configuracoes"))));
+
+        p.add(centeredComponent(makeButton("Sair", e -> showLoadingThen("login", 300, false, null))));
+
+        return p;
+    }
+
+    private JPanel buildListaScreen() {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Lista de Itens", SwingConstants.CENTER);
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        p.add(title, BorderLayout.NORTH);
+
+        JPanel center = new JPanel();
+        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
+        center.setName("listaCenter");
+        p.add(new JScrollPane(center), BorderLayout.CENTER);
+
+        JButton back = new JButton("Voltar");
+        back.addActionListener(e -> goTo("home"));
+        p.add(back, BorderLayout.SOUTH);
+
+        return p;
+    }
+
+    private void refreshListaScreen() {
+        JPanel p = screens.get("lista");
+        JScrollPane sp = (JScrollPane) p.getComponent(1);
+        JPanel center = (JPanel) sp.getViewport().getView();
+        center.removeAll();
+
+        for (String item : itens) {
+            JPanel card = new JPanel(new BorderLayout());
+            card.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+            JLabel l = new JLabel(item);
+            card.add(l, BorderLayout.WEST);
+
+            JPanel actions = new JPanel();
+
+            JButton abrir = new JButton("Abrir");
+            abrir.addActionListener(e -> {
+                currentSelectedItem = item;
+                goTo("detalhes");
+            });
+
+            JButton editar = new JButton("Editar");
+            editar.addActionListener(e -> {
+                currentSelectedItem = item;
+                goTo("editar");
+            });
+
+            JButton excluir = new JButton("Excluir");
+            excluir.addActionListener(e -> {
+                currentSelectedItem = item;
+                goTo("excluir");
+            });
+
+            actions.add(abrir);
+            actions.add(editar);
+            actions.add(excluir);
+
+            card.add(actions, BorderLayout.EAST);
+            center.add(card);
+        }
+
+        center.revalidate();
+        center.repaint();
+    }
+
+    private JPanel buildDetalhesScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Detalhes do Item");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel lbl = new JLabel();
+        lbl.setName("detalheLabel");
+        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(lbl);
+
+        p.add(centeredComponent(makeButton("Voltar", e -> goTo("lista"))));
+
+        return p;
+    }
+
+    private void refreshDetalhesScreen(String item) {
+        JPanel p = screens.get("detalhes");
+        JLabel lbl = (JLabel) findComponentByName(p, "detalheLabel");
+        lbl.setText("Você abriu: " + item);
+    }
+
+    private JPanel buildAdicionarScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Adicionar Item");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JTextField field = new JTextField();
+        field.setMaximumSize(new Dimension(280, 28));
+        field.setName("novoItemField");
+        p.add(centeredComponent(field));
+
+        p.add(centeredComponent(makeButton("Salvar", e -> {
+            String txt = field.getText().trim();
+            if (!txt.isEmpty()) {
+                itens.add(txt);
+                JOptionPane.showMessageDialog(frame, "Item adicionado!");
+                field.setText("");
+                goTo("lista");
+            }
+        })));
+
+        p.add(centeredComponent(makeButton("Voltar", e -> goTo("home"))));
+
+        return p;
+    }
+
+    private JPanel buildEditarScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Editar Item");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel atual = new JLabel();
+        atual.setName("editar_atual_label");
+        atual.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(atual);
+
+        JTextField field = new JTextField();
+        field.setMaximumSize(new Dimension(280,28));
+        field.setName("editarField");
+        p.add(centeredComponent(field));
+
+        p.add(centeredComponent(makeButton("Salvar", e -> {
+            String novo = field.getText().trim();
+            if (!novo.isEmpty() && currentSelectedItem != null) {
+                int idx = itens.indexOf(currentSelectedItem);
+                if (idx >= 0) itens.set(idx, novo);
+                goTo("lista");
+            }
+        })));
+
+        p.add(centeredComponent(makeButton("Voltar", e -> goTo("detalhes"))));
+
+        return p;
+    }
+
+    private void refreshEditarScreen(String item) {
+        JPanel p = screens.get("editar");
+        JLabel atual = (JLabel) findComponentByName(p, "editar_atual_label");
+        JTextField field = (JTextField) findComponentByName(p, "editarField");
+
+        atual.setText("Item atual: " + item);
+        field.setText(item);
+    }
+
+    private JPanel buildExcluirScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Excluir Item");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel lbl = new JLabel();
+        lbl.setName("confirmLabel");
+        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(lbl);
+
+        p.add(centeredComponent(makeButton("Confirmar Exclusão", e -> {
+            itens.remove(currentSelectedItem);
+            goTo("lista");
+        })));
+
+        p.add(centeredComponent(makeButton("Cancelar", e -> goTo("lista"))));
+
+        return p;
+    }
+
+    private void refreshExcluirScreen(String item) {
+        JPanel p = screens.get("excluir");
+        JLabel lbl = (JLabel) findComponentByName(p, "confirmLabel");
+        lbl.setText("Excluir: " + item + "?");
+    }
+
+    private JPanel buildPerfilScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Perfil");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel nome = new JLabel();
+        nome.setName("perfil_nome");
+        nome.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(nome);
+
+        JLabel email = new JLabel();
+        email.setName("perfil_email");
+        email.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(email);
+
+        p.add(centeredComponent(makeButton("Editar Nome", e -> editarNomeDialog())));
+        p.add(centeredComponent(makeButton("Voltar", e -> goTo("home"))));
+
+        return p;
+    }
+
+    private void refreshPerfilScreen() {
+        JPanel p = screens.get("perfil");
+        JLabel nome = (JLabel) findComponentByName(p, "perfil_nome");
+        JLabel email = (JLabel) findComponentByName(p, "perfil_email");
+
+        nome.setText("Nome: " + usuario);
+        email.setText("Email: " + profileEmail);
+    }
+
+    private void editarNomeDialog() {
+        String novo = JOptionPane.showInputDialog(frame, "Novo nome:", usuario);
+        if (novo != null && !novo.trim().isEmpty()) {
+            usuario = novo.trim();
+            goTo("perfil");
+        }
+    }
+
+    private JPanel buildConfiguracoesScreen() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(colors.get("bg"));
+
+        JLabel title = new JLabel("Configurações");
+        title.setFont(new Font("Arial", Font.BOLD, 18));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(title);
+
+        JLabel tema = new JLabel("Tema atual: " + themeName);
+        tema.setName("temaAtualLabel");
+        tema.setAlignmentX(Component.CENTER_ALIGNMENT);
+        p.add(tema);
+
+        p.add(centeredComponent(makeButton("Modo Escuro", e -> setTheme("dark"))));
+        p.add(centeredComponent(makeButton("Modo Claro", e -> setTheme("light"))));
+
+        p.add(centeredComponent(makeButton("Voltar", e -> goTo("home"))));
+
+        return p;
+    }
+
+    private void refreshConfiguracoesScreen() {
+        JPanel p = screens.get("configuracoes");
+        JLabel tema = (JLabel) findComponentByName(p, "temaAtualLabel");
+        tema.setText("Tema atual: " + themeName);
+    }
+    private Component centeredComponent(Component c) {
+        // se for um JComponent, chama setAlignmentX corretamente
+        if (c instanceof JComponent) {
+            ((JComponent) c).setAlignmentX(Component.CENTER_ALIGNMENT);
+        }
+
+        JPanel w = new JPanel();
+        w.setOpaque(false);
+        w.setLayout(new BoxLayout(w, BoxLayout.X_AXIS));
+        w.add(Box.createHorizontalGlue());
+        w.add(c);
+        w.add(Box.createHorizontalGlue());
+        return w;
+    }
+
+    private Component findComponentByName(Component parent, String name) {
+        if (name.equals(parent.getName())) return parent;
+        if (parent instanceof Container ct) {
+            for (Component c : ct.getComponents()) {
+                Component f = findComponentByName(c, name);
+                if (f != null) return f;
+            }
+        }
+        return null;
+    }
+
+    // FINALIZAÇÃO DO CÓDIGO
+    private void setTheme(String newTheme) {
+        themeName = newTheme;
+        setColorsForTheme();
+        initLookAndFeel();
+
+        frame.dispose();
+        createAndShowGUI();
+        showScreen("configuracoes");
+    }
+
+    public static void main(String[] args) {
+        new ProjectSeminario();
     }
 }
-
-# ---------------- Aplicação ----------------
-class App:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Projeto Seminário")
-        self.root.geometry("380x560")
-        self.root.resizable(False, False)
-
-        # dados da aplicação (em memória)
-        self.itens = ["Item 1", "Item 2", "Item 3"]
-        self.usuario = "Aluno Exemplo"
-        self.profile_email = "email@exemplo.com"
-
-        # tema inicial
-        self.theme_name = "light"   # default, pode mudar em Configurações
-        self.colors = THEMES[self.theme_name]
-
-        # para re-renderizar tela atual ao trocar tema
-        self.current_screen = None
-        self.current_args = ()
-
-        # container principal (para limpar e redesenhar)
-        self.main_frame = tk.Frame(self.root, bg=self.colors["bg"])
-        self.main_frame.pack(fill="both", expand=True)
-
-        # inicializar na tela de carregamento e depois login
-        self.show_loading(self.tela_login, delay=700, first_load=True)
-
-    # ---------------- utilitários de tema / widgets ----------------
-    def set_theme(self, theme_name):
-        if theme_name not in THEMES:
-            return
-        self.theme_name = theme_name
-        self.colors = THEMES[theme_name]
-        # atualizar janela e redesenhar tela atual
-        self.main_frame.configure(bg=self.colors["bg"])
-        # re-renderiza a tela atual (mantendo args)
-        if self.current_screen:
-            # mostrar loading quando trocar tema também para deixar visual agradável
-            self.show_loading(lambda: self.current_screen(*self.current_args), delay=400)
-
-    def titulo(self, texto):
-        return tk.Label(self.main_frame, text=texto, font=("Arial", 20, "bold"),
-                        bg=self.colors["bg"], fg=self.colors["fg"])
-
-    def botao(self, texto, comando, width=22, height=2):
-        return tk.Button(self.main_frame, text=texto, command=comando,
-                         width=width, height=height,
-                         bg=self.colors["button_bg"], fg=self.colors["button_fg"],
-                         font=("Arial", 11, "bold"), bd=0, activebackground=self.colors["accent"])
-
-    def limpar_main(self):
-        for w in self.main_frame.winfo_children():
-            w.destroy()
-
-    # ---------------- Loading (aparece sempre que trocar de tela) ----------------
-    def show_loading(self, next_func, delay=500, *args, first_load=False):
-        # delay em ms
-        loading = tk.Toplevel(self.root)
-        loading.overrideredirect(True)
-        loading.geometry("220x100")
-        # centraliza
-        x = self.root.winfo_x() + (self.root.winfo_width() - 220)//2
-        y = self.root.winfo_y() + (self.root.winfo_height() - 100)//2
-        loading.geometry(f"+{x}+{y}")
-
-        # define estilo do loading de acordo com tema (background leve)
-        lb_bg = "#111111" if self.theme_name == "dark" else "#ffffff"
-        lb_fg = "#ffffff" if self.theme_name == "dark" else "#000000"
-        loading.configure(bg=lb_bg)
-
-        lbl = tk.Label(loading, text="Carregando...", font=("Arial", 12), bg=lb_bg, fg=lb_fg)
-        lbl.pack(expand=True, fill="both")
-
-        # after para simular carregamento
-        def continuar():
-            loading.destroy()
-            # chama a função de tela
-            next_func(*args)
-        # se for a primeira abertura, dá um pouco mais de delay
-        d = delay if not first_load else delay + 300
-        self.root.after(d, continuar)
-
-    # ---------------- NAVEGAÇÃO: todas as trocas de tela devem usar go_to ----------------
-    def go_to(self, screen_func, *args):
-        # guarda para re-renderizar ao trocar tema
-        self.current_screen = screen_func
-        self.current_args = args
-        # mostra loading e depois a tela
-        self.show_loading(lambda: screen_func(*args), delay=500)
-
-    # ---------------- TELAS ----------------
-    def tela_login(self):
-        self.limpar_main()
-        # marca tela atual
-        self.current_screen = self.tela_login
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Tela de Login").pack(pady=25)
-
-        lbl_user = tk.Label(self.main_frame, text="Usuário:", bg=self.colors["bg"], fg=self.colors["fg"])
-        lbl_user.pack()
-        self.usuario_entry = tk.Entry(self.main_frame, width=30)
-        self.usuario_entry.pack(pady=5)
-
-        lbl_pass = tk.Label(self.main_frame, text="Senha:", bg=self.colors["bg"], fg=self.colors["fg"])
-        lbl_pass.pack()
-        self.senha_entry = tk.Entry(self.main_frame, show="*", width=30)
-        self.senha_entry.pack(pady=5)
-
-        # botão entrar
-        self.botao("Entrar", self._login_action).pack(pady=18)
-        # atalhos
-        btn_demo = tk.Button(self.main_frame, text="Entrar como demo", command=self._login_demo,
-                             width=20, bg=self.colors["card"], fg=self.colors["fg"], bd=1)
-        btn_demo.pack(pady=6)
-
-        # pequena ajuda
-        tk.Label(self.main_frame, text="(Preencha algo e clique Entrar)", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 9)).pack(pady=6)
-
-    def _login_action(self):
-        u = self.usuario_entry.get().strip()
-        s = self.senha_entry.get().strip()
-        if u == "" or s == "":
-            messagebox.showerror("Erro", "Preencha todos os campos!")
-            return
-        # simula autenticação
-        self.usuario = u
-        self.go_to(self.tela_home)
-
-    def _login_demo(self):
-        self.usuario = "Aluno Demo"
-        self.profile_email = "demo@exemplo.com"
-        self.go_to(self.tela_home)
-
-    def tela_home(self):
-        self.limpar_main()
-        self.current_screen = self.tela_home
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Tela Home").pack(pady=18)
-        # boas vindas
-        tk.Label(self.main_frame, text=f"Olá, {self.usuario}!", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 12)).pack(pady=6)
-
-        # botoes de navegação
-        self.botao("Abrir Lista", lambda: self.go_to(self.tela_lista)).pack(pady=8)
-        self.botao("Adicionar Item", lambda: self.go_to(self.tela_adicionar_item)).pack(pady=8)
-        self.botao("Perfil", lambda: self.go_to(self.tela_perfil)).pack(pady=8)
-        self.botao("Configurações", lambda: self.go_to(self.tela_configuracoes)).pack(pady=8)
-        self.botao("Sair", lambda: self.go_to(self.tela_login)).pack(pady=12)
-
-    def tela_lista(self):
-        self.limpar_main()
-        self.current_screen = self.tela_lista
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Lista de Itens").pack(pady=14)
-
-        # lista em forma de "card" botão para cada item com menu lateral para editar/excluir
-        list_frame = tk.Frame(self.main_frame, bg=self.colors["bg"])
-        list_frame.pack(pady=6)
-
-        if not self.itens:
-            tk.Label(list_frame, text="Nenhum item. Adicione um!", bg=self.colors["bg"], fg=self.colors["fg"]).pack()
-        else:
-            for item in self.itens:
-                card = tk.Frame(list_frame, bg=self.colors["card"], bd=0, relief="ridge", padx=6, pady=6)
-                card.pack(fill="x", padx=12, pady=6)
-
-                lbl = tk.Label(card, text=item, bg=self.colors["card"], fg=self.colors["fg"], font=("Arial", 12))
-                lbl.pack(side="left", padx=4)
-
-                btns = tk.Frame(card, bg=self.colors["card"])
-                btns.pack(side="right")
-                tk.Button(btns, text="Abrir", command=lambda i=item: self.go_to(self.tela_detalhes, i),
-                          bg=self.colors["button_bg"], fg=self.colors["button_fg"], bd=0).pack(side="left", padx=4)
-                tk.Button(btns, text="Editar", command=lambda i=item: self.go_to(self.tela_editar_item, i),
-                          bg=self.colors["button_bg"], fg=self.colors["button_fg"], bd=0).pack(side="left", padx=4)
-                tk.Button(btns, text="Excluir", command=lambda i=item: self.go_to(self.tela_excluir_item, i),
-                          bg="#e53935", fg="#fff", bd=0).pack(side="left", padx=4)
-
-        self.botao("Voltar", lambda: self.go_to(self.tela_home)).pack(pady=12)
-
-    def tela_detalhes(self, item):
-        self.limpar_main()
-        self.current_screen = self.tela_detalhes
-        self.current_args = (item,)
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Detalhes do Item").pack(pady=16)
-        tk.Label(self.main_frame, text=f"Você abriu: {item}", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 13)).pack(pady=10)
-
-        self.botao("Editar Item", lambda: self.go_to(self.tela_editar_item, item)).pack(pady=6)
-        # botão excluir direto na tela de detalhes também
-        tk.Button(self.main_frame, text="Excluir Item", command=lambda: self.go_to(self.tela_excluir_item, item),
-                  bg="#e53935", fg="#fff", bd=0, width=22, height=2).pack(pady=6)
-        self.botao("Voltar", lambda: self.go_to(self.tela_lista)).pack(pady=12)
-
-    def tela_adicionar_item(self):
-        self.limpar_main()
-        self.current_screen = self.tela_adicionar_item
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Adicionar Item").pack(pady=16)
-
-        tk.Label(self.main_frame, text="Nome do novo item:", bg=self.colors["bg"], fg=self.colors["fg"]).pack(pady=6)
-        self.novo_item_entry = tk.Entry(self.main_frame, width=30)
-        self.novo_item_entry.pack(pady=6)
-        self.botao("Salvar", self._salvar_novo_item).pack(pady=10)
-        self.botao("Voltar", lambda: self.go_to(self.tela_home)).pack(pady=8)
-
-    def _salvar_novo_item(self):
-        nome = self.novo_item_entry.get().strip()
-        if nome == "":
-            messagebox.showerror("Erro", "O nome não pode ser vazio!")
-            return
-        self.itens.append(nome)
-        messagebox.showinfo("Sucesso", "Item adicionado!")
-        self.go_to(self.tela_lista)
-
-    def tela_editar_item(self, item):
-        self.limpar_main()
-        self.current_screen = self.tela_editar_item
-        self.current_args = (item,)
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Editar Item").pack(pady=16)
-
-        tk.Label(self.main_frame, text=f"Item atual: {item}", bg=self.colors["bg"], fg=self.colors["fg"]).pack(pady=6)
-        self.editar_entry = tk.Entry(self.main_frame, width=30)
-        self.editar_entry.pack(pady=6)
-        self.editar_entry.insert(0, item)
-
-        self.botao("Salvar Edição", lambda: self._salvar_edicao(item)).pack(pady=8)
-        self.botao("Voltar", lambda: self.go_to(self.tela_detalhes, item)).pack(pady=6)
-
-    def _salvar_edicao(self, item):
-        novo_nome = self.editar_entry.get().strip()
-        if novo_nome == "":
-            messagebox.showerror("Erro", "O novo nome não pode ser vazio!")
-            return
-        # atualiza na lista
-        try:
-            idx = self.itens.index(item)
-            self.itens[idx] = novo_nome
-            messagebox.showinfo("Sucesso", "Item editado!")
-            self.go_to(self.tela_lista)
-        except ValueError:
-            messagebox.showerror("Erro", "Item não encontrado!")
-
-    def tela_excluir_item(self, item):
-        self.limpar_main()
-        self.current_screen = self.tela_excluir_item
-        self.current_args = (item,)
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Excluir Item").pack(pady=16)
-
-        tk.Label(self.main_frame, text=f"Tem certeza que deseja excluir:\n\n{item}",
-                 bg=self.colors["bg"], fg=self.colors["fg"], font=("Arial", 12)).pack(pady=14)
-
-        tk.Button(self.main_frame, text="Confirmar Exclusão", command=lambda: self._confirm_excluir(item),
-                  bg="#e53935", fg="#fff", bd=0, width=22, height=2).pack(pady=8)
-        self.botao("Cancelar", lambda: self.go_to(self.tela_lista)).pack(pady=8)
-
-    def _confirm_excluir(self, item):
-        try:
-            self.itens.remove(item)
-            messagebox.showinfo("Sucesso", "Item excluído!")
-            self.go_to(self.tela_lista)
-        except ValueError:
-            messagebox.showerror("Erro", "Item não encontrado!")
-
-    def tela_perfil(self):
-        self.limpar_main()
-        self.current_screen = self.tela_perfil
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Perfil").pack(pady=14)
-
-        # perfil básico com opção de editar nome
-        tk.Label(self.main_frame, text=f"Nome: {self.usuario}", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 12)).pack(pady=6)
-        tk.Label(self.main_frame, text=f"Email: {self.profile_email}", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 11)).pack(pady=6)
-
-        self.botao("Editar Nome", self._editar_nome_dialog).pack(pady=8)
-        self.botao("Voltar", lambda: self.go_to(self.tela_home)).pack(pady=10)
-
-    def _editar_nome_dialog(self):
-        # simples prompt
-        novo = tk.simpledialog.askstring("Editar Nome", "Novo nome:", parent=self.root)
-        if novo:
-            self.usuario = novo
-            messagebox.showinfo("Sucesso", "Nome atualizado!")
-            self.go_to(self.tela_perfil)
-
-    def tela_configuracoes(self):
-        self.limpar_main()
-        self.current_screen = self.tela_configuracoes
-        self.current_args = ()
-
-        self.main_frame.configure(bg=self.colors["bg"])
-        self.titulo("Configurações").pack(pady=14)
-
-        # modo escuro: mostra o estado atual e botões para alternar
-        tk.Label(self.main_frame, text=f"Tema atual: {self.theme_name}", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 11)).pack(pady=6)
-
-        # botoes para alternar tema
-        tk.Button(self.main_frame, text="Ativar Modo Escuro", command=lambda: self.set_theme("dark"),
-                  bg=self.colors["button_bg"], fg=self.colors["button_fg"], bd=0, width=22, height=2).pack(pady=6)
-        tk.Button(self.main_frame, text="Ativar Modo Claro", command=lambda: self.set_theme("light"),
-                  bg=self.colors["button_bg"], fg=self.colors["button_fg"], bd=0, width=22, height=2).pack(pady=6)
-
-        # outras configurações fictícias
-        tk.Label(self.main_frame, text="Outras Opções", bg=self.colors["bg"], fg=self.colors["fg"],
-                 font=("Arial", 12, "bold")).pack(pady=10)
-        tk.Label(self.main_frame, text="(Nenhuma disponível no momento)", bg=self.colors["bg"], fg=self.colors["fg"]).pack()
-
-        self.botao("Voltar", lambda: self.go_to(self.tela_home)).pack(pady=12)
-
-# ---------------- Inicializa a aplicação ----------------
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
